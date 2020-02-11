@@ -34,7 +34,6 @@ show("edged", edged)
 # contours and rectangle detection
 (cnts, _) = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-
 for c in cnts:
     # approximate
     peri = cv2.arcLength(c, True)
