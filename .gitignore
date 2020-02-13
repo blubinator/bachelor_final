@@ -110,3 +110,4 @@ Thumbs.db
 # Directorys #
 ##############
 /venv/*
+venv/
