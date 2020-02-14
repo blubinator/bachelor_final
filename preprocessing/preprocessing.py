@@ -12,29 +12,9 @@ def show(name, img):
     cv2.imshow(name, resize(img))
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
-def order_points_old(pts):
-	# initialize a list of coordinates that will be ordered
-	# such that the first entry in the list is the top-left,
-	# the second entry is the top-right, the third is the
-	# bottom-right, and the fourth is the bottom-left
-	rect = np.zeros((4, 2), dtype="float32")
-	# the top-left point will have the smallest sum, whereas
-	# the bottom-right point will have the largest sum
-	s = pts.sum(axis=1)
-	rect[0] = pts[np.argmin(s)]
-	rect[2] = pts[np.argmax(s)]
-	# now, compute the difference between the points, the
-	# top-right point will have the smallest difference,
-	# whereas the bottom-left will have the largest difference
-	diff = np.diff(pts, axis=1)
-	rect[1] = pts[np.argmax(diff)]
-	rect[3] = pts[np.argmin(diff)]
-	# return the ordered coordinates
-	return rect
     
 # src img
-img = cv2.imread("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures\\fuehrerschein1.jpg")
+img = cv2.imread("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures\\fuehrerschein0.jpg")
 img = resize(img)
 
 show("original", img)
@@ -48,22 +28,34 @@ edged = cv2.Canny(blur_gray, 30, 150)
 
 show("edged", edged)
 
+edged_blur = cv2.GaussianBlur(edged,(3, 3),cv2.BORDER_DEFAULT)
+
+show("edged_blur", edged_blur)
+
 # contours and rectangle detection
-(cnts, hier) = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-cv2.drawContours(img, cnts[-1], -1, (0, 255, 0), 2)
+(cnts, hier) = cv2.findContours(edged_blur, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+cv2.drawContours(img, cnts, -1, (0, 255, 0), 2)
 show("contours", img)
 screenCnt = None
+area = 0
+area_index = 0
+index = 0
 for c in cnts:
     peri = cv2.arcLength(c, True)
     approx = cv2.approxPolyDP(c, 0.05 * peri, True)
-    if len(approx) == 4:
+    # if len(approx) == 4:
+    #     screenCnt = approx
+    if area < cv2.contourArea(c) and len(approx) == 4:
+        area = cv2.contourArea(c)
         screenCnt = approx
 
-rect = cv2.minAreaRect(cnts[-1]) # get a rectangle rotated to have minimal area
+    index = index + 1
+
+rect = cv2.minAreaRect(screenCnt) # get a rectangle rotated to have minimal area
 box = cv2.boxPoints(rect) # get the box from the rectangle
 box = np.array(box, dtype="int")
 
-cv2.drawContours(img, [screenCnt], -1, (0, 0, 255), 2)
+cv2.drawContours(img, screenCnt, -1, (0, 0, 255), 2)
 
 show("rectangle", img)
 
