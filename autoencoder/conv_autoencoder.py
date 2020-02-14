@@ -77,8 +77,8 @@ def train_autoencoder():
     autoencoder.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
 
     autoencoder.fit(X_train, X_train,
-        epochs=1000,
-        batch_size=256,
+        epochs=100,
+        batch_size=128,
         shuffle=True,
         validation_data=(X_test, X_test))
 
