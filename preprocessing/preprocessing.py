@@ -24,13 +24,17 @@ def detect_card(path):
     #show("original", img)
 
     # img variants
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    blur_gray = cv2.GaussianBlur(hsv,(3, 3),cv2.BORDER_DEFAULT)
+    # noise reduction    
+    kernel = np.ones((1, 1), np.uint8)    
+    img = cv2.dilate(img, kernel, iterations=1)    
+    img = cv2.erode(img, kernel, iterations=1)
+
+    # blur whole image
+    blur_gray = cv2.GaussianBlur(img,(3, 3),cv2.BORDER_DEFAULT)
 
     edged = cv2.Canny(blur_gray, 30, 150)
-
-    #show("edged", edged)
 
     edged_blur = cv2.GaussianBlur(edged,(3, 3),cv2.BORDER_DEFAULT)
 
@@ -71,7 +75,7 @@ def detect_card(path):
     h, status = cv2.findHomography(pts_src, pts_dst)
         
 
-    im_out = cv2.warpPerspective(img, h, (1920, 1080))
+    im_out = cv2.warpPerspective(img, h, (1600, 900))
         
     show("Warped Source Image", im_out)
     return im_out
@@ -80,9 +84,19 @@ def extract_roi():
     print("asd")
 
 def perform_ocr(img):
-    blur = cv2.GaussianBlur(img,(3, 3),cv2.BORDER_DEFAULT)
+    #blur = cv2.GaussianBlur(img,(3, 3),cv2.BORDER_DEFAULT)
+    img = cv2.resize(img, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
+    # Convert to gray    
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)    
+    # # Apply dilation and erosion to remove some noise    
+    kernel = np.ones((1, 1), np.uint8)    
+    img = cv2.dilate(img, kernel, iterations=1)    
+    img = cv2.erode(img, kernel, iterations=1)
+    #img = cv2.GaussianBlur(img,(3, 3),cv2.BORDER_DEFAULT)
+    img = cv2.threshold(img,127,255,cv2.THRESH_BINARY)
+    show("ayyy", img)
 
-    pil_img = Image.fromarray(blur, 'RGB')
+    pil_img = Image.fromarray(img, 'L')
     print(pytesseract.image_to_string(pil_img, lang = 'deu'))
     data = pytesseract.image_to_data(pil_img, output_type=pytesseract.Output.DICT)
     h = pil_img.height
@@ -100,7 +114,7 @@ if __name__ == "__main__":
     pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
     ############################################
 
-    img = detect_card("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures\\fuehrerschein0.jpg")
+    img = detect_card("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures\\fuehrerschein1.jpg")
     perform_ocr(img)
    
 
