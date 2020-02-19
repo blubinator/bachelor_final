@@ -71,10 +71,16 @@ def detect_card(path):
 
     show("rectangle", img)
 
+    # detect orientation of card
+    angle = math.degrees(math.atan2(screenCnt[0,:,1]-screenCnt[1,:,1], screenCnt[0,:,0]-screenCnt[1,:,0]))
+
     # homography
     pts_src = np.array(screenCnt)
-
-    pts_dst = np.array([[1600, 900], [1600, 0], [0, 0], [0, 900]])
+    if angle > 0:
+        pts_dst = np.array([[1600, 900], [1600, 0], [0, 0], [0, 900]])
+ 
+    else:
+        pts_dst = np.array([[0, 900], [1600, 900], [1600, 0], [0, 0]])
 
     h, status = cv2.findHomography(pts_src, pts_dst)
 
@@ -126,7 +132,7 @@ def crop_blocks(img, resp):
     # Get the text blocks
     blocks = resp['Blocks']
     height, width = img.shape
-    poly = []
+    
     index = 0
     # Create image showing bounding box/polygon the detected lines/text
     for block in blocks:
@@ -139,67 +145,71 @@ def crop_blocks(img, resp):
                 y = pt['Y']*height
                 temp = [int(x),int(y)]
                 poly.append(temp)
+            # crop
+            crop_poly = np.array(poly)
+            rect = cv2.boundingRect(crop_poly)
+            x,y,w,h = rect
+            croped = img[y:y+h, x:x+w].copy()
 
-                # crop
-                crop_poly = np.array(poly)
-                rect = cv2.boundingRect(crop_poly)
-                x,y,w,h = rect
-                croped = img[y:y+h, x:x+w].copy()
+            # make mask
+            crop_poly = crop_poly - crop_poly.min(axis=0)
 
-                ## (2) make mask
-                crop_poly = crop_poly - crop_poly.min(axis=0)
+            mask = np.zeros(croped.shape[:2], np.uint8)
+            cv2.drawContours(mask, [crop_poly], -1, (255, 255, 255), -1, cv2.LINE_AA)
 
-                mask = np.zeros(croped.shape[:2], np.uint8)
-                cv2.drawContours(mask, [crop_poly], -1, (255, 255, 255), -1, cv2.LINE_AA)
+            # do bit-op
+            dst = cv2.bitwise_and(croped, croped, mask=mask)
 
-                ## (3) do bit-op
-                dst = cv2.bitwise_and(croped, croped, mask=mask)
+            # add the white background
+            bg = np.ones_like(croped, np.uint8)*255
+            cv2.bitwise_not(bg,bg, mask=mask)
+            dst2 = bg + dst
 
-                ## (4) add the white background
-                bg = np.ones_like(croped, np.uint8)*255
-                cv2.bitwise_not(bg,bg, mask=mask)
-                dst2 = bg+ dst
+            cv2.imwrite("shaizze" + str(index) + ".png", dst2)
+            index = index + 1
+          
+            poly = np.array(poly)
+            poly = poly.reshape((-1,1,2))
+            cv2.polylines(img, [poly], True, (0,255,255))
+            poly = []
 
-                cv2.imwrite("shaizze" + str(index) + ".png", dst2)
-                index = index + 1
+    show("without blocks", img)
 
-                
-            
-    poly = np.array(poly)
-    poly = poly.reshape((-1,1,2))
-    cv2.polylines(img, [poly], True, (0,255,255))
+def crop_face(img):
 
-    
 
-    # Display the image
-    show("4ecke", img)
 
 def extract_variable_lines(img, resp):
         # Get the text blocks
     blocks = resp['Blocks']
     height, width = img.shape
 
-    poly = []
+    
 
     # Create image showing bounding box/polygon the detected lines/text
     for block in blocks:
         if block['BlockType'] == 'LINE':
             # draw polygon
-            
+            poly = []
+            temp = []
             for pt in block['Geometry']['Polygon']:
                 x = pt['X']*width
                 y = pt['Y']*height
                 temp = [int(x),int(y)]
                 poly.append(temp)
             
-    poly = np.array(poly)
-    poly = poly.reshape((-1,1,2))
-    # cv2.polylines(img, [poly], True, (0,255,255))
-    cv2.fillPoly(img, [poly], 255)
+            poly = np.array(poly)
+            poly = poly.reshape((-1,1,2))
+            # cv2.polylines(img, [poly], True, (0,255,255))
+            cv2.fillPoly(img, [poly], 255)
 
     show("black bars", img)
+    return img
 
-    #cr
+
+
+
+
 if __name__ == "__main__":
     ####### set tesseract path manually ########
     pytesseract.pytesseract.tesseract_cmd="C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
@@ -207,5 +217,5 @@ if __name__ == "__main__":
 
     img = detect_card("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures\\fuehrerschein0.jpg")
     resp = perform_ocr_aws(img)
-    crop_blocks(img, resp)
+    img = crop_blocks(img, resp)
     extract_variable_lines(img, resp)
