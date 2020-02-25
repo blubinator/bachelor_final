@@ -256,8 +256,7 @@ def idcard_check_nmbr(resp):
 
     for block in blocks:
         if block['BlockType'] == 'WORD':
-            found = re.search("[LMNPRTVWXY][1234567890CFGHJKLMNPRTVWXYZ]*", block['Text'])
-            if re.match("[LMNPRTVWXY][1234567890CFGHJKLMNPRTVWXYZ]*", block['Text']):
+            if re.match("^[LMNPRTVWXY][1234567890CFGHJKLMNPRTVWXYZ]{8}", block['Text']):
                 print("length match")
     # maybe nummer mit prüfziffer auf rückseite checken!       
 
