@@ -10,21 +10,22 @@ import sys
 import math
 import re
 import matplotlib.pyplot as plt
+import operator
 
 
 # resize
 
 
 def resize(img):
-    dsize = (1680, 1050)
+    dsize = (1920, 1080)
     resized_img = cv2.resize(img, dsize)
     return resized_img
 
 # show img
 def show(name, img):
-    #cv2.imshow(name, resize(img))
-    cv2.imshow(name, img)
+    cv2.namedWindow(name, 0)
     cv2.resizeWindow(name, (1680, 1050))
+    cv2.imshow(name, img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
@@ -46,31 +47,44 @@ def show(name, img):
 def detect_card(path):
     # src img
     img = cv2.imread(path)
-    img = resize(img)
+    #img = resize(img)
 
     # img variants
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img_gray = cv2.bilateralFilter(img_gray, 11, 17, 17)
 
     # noise reduction
-    kernel = np.ones((1, 1), np.uint8)
-    img_erode = cv2.erode(img_gray, kernel, iterations=1)
-    img_dilate = cv2.dilate(img_erode, kernel, iterations=1)
+    kernel = np.ones((3, 3), np.uint8)
+    img_erode = cv2.erode(img_gray, (5, 5), iterations=1)
+    img_dilate = cv2.dilate(img_erode, (3, 3), iterations=1)
+
+    _, img_thr = cv2.threshold(img_dilate,127,255,cv2.THRESH_BINARY_INV)
+    show("img_thr", img_thr)
+
 
     
     # blur whole image
-    blur_gray = cv2.GaussianBlur(img_dilate, (3, 3), cv2.BORDER_DEFAULT)
+    blur_gray = cv2.GaussianBlur(img_thr, (5, 5), cv2.BORDER_DEFAULT)
 
-    edged = cv2.Canny(blur_gray, 30, 150)
+    # thresholds for canny
+    v = np.median(blur_gray)
+    lower = int(max(0, (1.0 - 0.33) * v))
+    upper = int(min(255, (1.0 + 0.33) * v))
 
-    edged_blur = cv2.GaussianBlur(edged, (3, 3), cv2.BORDER_DEFAULT)
+    #detect edges
+    edged_gray = cv2.Canny(blur_gray, lower, upper)
 
-    show("edged", edged)
+    blur = cv2.GaussianBlur(edged_gray, (9, 9), cv2.BORDER_DEFAULT)
+    _, img_thr = cv2.threshold(blur,1,127,cv2.THRESH_BINARY)
+    blur = cv2.GaussianBlur(img_thr, (5, 5), cv2.BORDER_DEFAULT)
+    show("img_thr", blur)
+
 
     # contours and rectangle detection
-    (cnts, hier) = cv2.findContours(edged_blur, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    cv2.drawContours(img, cnts, -1, (0, 255, 0), 2)
+    (cnts, hier) = cv2.findContours(blur, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    cv2.drawContours(img, cnts, -1, (0, 255, 0), 9)
 
-    # show("contours", img)
+    show("contours", img)
     screenCnt = None
     area = 0
     area_index = 0
@@ -85,20 +99,28 @@ def detect_card(path):
 
         index = index + 1
 
-    cv2.drawContours(img, screenCnt, -1, (0, 0, 255), 2)
+    cv2.drawContours(img, screenCnt, -1, (0, 0, 255), 10)
 
     show("rectangle", img)
 
     # detect orientation of card
-    angle = math.degrees(math.atan2(screenCnt[0,:,1]-screenCnt[1,:,1], screenCnt[0,:,0]-screenCnt[1,:,0]))
+    screenCnt = np.sort(screenCnt, 1)
+    ## get corners
+    temp_array = screenCnt.copy()
+    upper_index = np.argmin(temp_array[:,:,1])
+    temp_array[upper_index] = 100000000000000
+    lower_index = np.argmin(temp_array[:,:,1])
+    
 
+    angle = math.degrees(math.atan2(screenCnt[upper_index,:,1]-screenCnt[lower_index,:,1], screenCnt[upper_index,:,0]-screenCnt[lower_index,:,0]))
+    
     # homography
     pts_src = np.array(screenCnt)
     if angle > 0:
         pts_dst = np.array([[1680, 1050], [1680, 0], [0, 0], [0, 1050]])
  
     else:
-        pts_dst = np.array([[0, 1050], [1680, 1050], [1600, 0], [0, 0]])
+        pts_dst = np.array([[1600, 0], [0, 0], [0, 1050], [1680, 1050]])
 
     h, status = cv2.findHomography(pts_src, pts_dst)
 
@@ -136,7 +158,7 @@ def detect_card(path):
 
 def perform_ocr_aws(img):
     # Read document content    
-    is_success, im_buf_arr = cv2.imencode(".jpg", img)
+    is_success, im_buf_arr = cv2.imencode(".png", img)
     byte_im = im_buf_arr.tobytes()
 
     # Amazon Textract client
@@ -242,27 +264,77 @@ def crop_face(img, cascPath):
 
     # Draw a rectangle around the faces
     for (x, y, w, h) in faces:
+        #cv2.rectangle(img, (x-50, y-100), (x+w+50, y+h+80), (255, 255, 255), cv2.FILLED)
         cv2.rectangle(img, (x-50, y-100), (x+w+50, y+h+80), (255, 255, 255), cv2.FILLED)
         
 
     show("Faces found", img)
     cv2.imwrite("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\preprocessing\\no_face_square.png", img)
 
-    # maybe test with edge detection
+    # maybe use edge detection inside the rectangle
 
 
-def idcard_check_nmbr(resp):
+def idcard_check_nmbr(resp, resp_back):
     blocks = resp['Blocks']
+    blocks_back = resp_back['Blocks']
 
     for block in blocks:
         if block['BlockType'] == 'WORD':
             if re.match("^[LMNPRTVWXY][1234567890CFGHJKLMNPRTVWXYZ]{8}", block['Text']):
+                id_nmbr_front = block['Text']
                 print("length match")
-    # maybe nummer mit prüfziffer auf rückseite checken!       
+
+    # maybe nummer mit prüfziffer auf rückseite checken!
+    for block in blocks_back:
+        if block['BlockType'] == 'WORD':
+            if re.match("^[LMNPRTVWXY][1234567890CFGHJKLMNPRTVWXYZ]{9}", block['Text']):
+                id_nmbr_back = block['Text']
+                print("length match back")
+
+    weight = 7
+    nmbr_sum = 0
+    for c in id_nmbr_front:
+        if weight == 7:
+            nmbr_sum += get_alphab_nmbr(c)
+            weight = 3
+
+        if weight == 3:
+            weight = 1
+            nmbr_sum += get_alphab_nmbr(c)
+        if weight == 1:
+            weight = 7
+            nmbr_sum += get_alphab_nmbr(c)
+
+        if id_nmbr_back[len(id_nmbr_back) - 1] == int(str(nmbr_sum)[-1:]):
+            print('id is valid')
+        else:
+            print('id is false')
+
+def get_alphab_nmbr(char):
+    if str.isdigit(char):
+        return ord(char) - 96 + 9
+    else:
+        return char
 
 
-#def check_lines(img):
 
+
+
+def check_lines():
+    # with hu moments evtl einzelne buchstaben ausschneiden
+    img = cv2.imread("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\preprocessing\\line8.png")
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    _, th = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
+    show("thresh line", th)
+
+    moments = cv2.moments(th)
+    huMoments = cv2.HuMoments(moments)
+
+    for i in range(len(huMoments)):
+        huMoments[i] = -1 * math.copysign(1.0, huMoments[i]) * math.log10(abs(huMoments[i]))  
+        print(huMoments[i])
+    
 
 
 
@@ -271,9 +343,17 @@ if __name__ == "__main__":
     pytesseract.pytesseract.tesseract_cmd="C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
     ############################################
     
-    img = detect_card("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures_idcard\\ausweis17.jpg")
+    # front
+    img = detect_card("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures_idcard\\ausweis18.png")
     resp = perform_ocr_aws(img)
     img = crop_blocks(img, resp)
     img = extract_variable_lines(img, resp)
     img = crop_face(img, "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\haarcascade_frontalface_default.xml")
-    idcard_check_nmbr(resp)
+
+    # back
+    img_back = detect_card("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures_idcard\\ausweis_rueckseite3.png")
+    resp_back = perform_ocr_aws(img_back)
+
+
+    idcard_check_nmbr(resp, resp_back)
+    check_lines()
