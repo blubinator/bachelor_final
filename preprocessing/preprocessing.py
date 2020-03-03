@@ -52,18 +52,16 @@ def detect_card(path):
 
     # img variants
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    img_gray = cv2.bilateralFilter(img_gray, 11, 17, 17)
+
 
     # noise reduction
+    img_gray = cv2.bilateralFilter(img_gray, 11, 17, 17)
     kernel = np.ones((3, 3), np.uint8)
     img_erode = cv2.erode(img_gray, (5, 5), iterations=1)
     img_dilate = cv2.dilate(img_erode, (3, 3), iterations=1)
-
     _, img_thr = cv2.threshold(img_dilate,127,255,cv2.THRESH_BINARY_INV)
     #show("img_thr", img_thr)
-
-
-    
+  
     # blur whole image
     blur_gray = cv2.GaussianBlur(img_thr, (5, 5), cv2.BORDER_DEFAULT)
 
@@ -79,7 +77,6 @@ def detect_card(path):
     _, img_thr = cv2.threshold(blur,1,127,cv2.THRESH_BINARY)
     blur = cv2.GaussianBlur(img_thr, (5, 5), cv2.BORDER_DEFAULT)
     #show("img_thr", blur)
-
 
     # contours and rectangle detection
     (cnts, hier) = cv2.findContours(blur, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -102,7 +99,7 @@ def detect_card(path):
 
     cv2.drawContours(img, screenCnt, -1, (0, 0, 255), 10)
 
-    #show("rectangle", img)
+    show("rectangle", img)
 
     # detect orientation of card
     screenCnt = np.sort(screenCnt, 1)
@@ -182,38 +179,40 @@ def crop_blocks(img, resp):
             # draw polygon
             poly = []
             temp = []
-            for pt in block['Geometry']['Polygon']:
-                x = pt['X']*width
-                y = pt['Y']*height
-                temp = [int(x),int(y)]
-                poly.append(temp)
-            # crop
-            crop_poly = np.array(poly)
-            rect = cv2.boundingRect(crop_poly)
-            x,y,w,h = rect
-            croped = img[y:y+h, x:x+w].copy()
+            if block['Text'].isupper() or re.match(r"[\d]{2}.[\d]{2}.[\d]{4}", block['Text']) or re.match(r"[0-9]+", block['Text']):
+                if not any(block['Text'] in s for s in ger_id_dict):
+                    for pt in block['Geometry']['Polygon']:
+                        x = pt['X']*width
+                        y = pt['Y']*height
+                        temp = [int(x),int(y)]
+                        poly.append(temp)
+                    # crop
+                    crop_poly = np.array(poly)
+                    rect = cv2.boundingRect(crop_poly)
+                    x,y,w,h = rect
+                    croped = img[y:y+h, x:x+w].copy()
 
-            # make mask
-            crop_poly = crop_poly - crop_poly.min(axis=0)
+                    # make mask
+                    crop_poly = crop_poly - crop_poly.min(axis=0)
 
-            mask = np.zeros(croped.shape[:2], np.uint8)
-            cv2.drawContours(mask, [crop_poly], -1, (255, 255, 255), -1, cv2.LINE_AA)
+                    mask = np.zeros(croped.shape[:2], np.uint8)
+                    cv2.drawContours(mask, [crop_poly], -1, (255, 255, 255), -1, cv2.LINE_AA)
 
-            # do bit-op
-            dst = cv2.bitwise_and(croped, croped, mask=mask)
+                    # do bit-op
+                    dst = cv2.bitwise_and(croped, croped, mask=mask)
 
-            # add the white background
-            bg = np.ones_like(croped, np.uint8)*255
-            cv2.bitwise_not(bg,bg, mask=mask)
-            dst2 = bg + dst
+                    # add the white background
+                    bg = np.ones_like(croped, np.uint8)*255
+                    cv2.bitwise_not(bg,bg, mask=mask)
+                    dst2 = bg + dst
 
-            cv2.imwrite("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\preprocessing\\line" + str(index) + ".png", dst2)
-            index = index + 1
-          
-            poly = np.array(poly)
-            poly = poly.reshape((-1,1,2))
-            cv2.polylines(img, [poly], True, (0,255,255))
-            poly = []
+                    cv2.imwrite("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\preprocessing\\line" + str(index) + ".png", dst2)
+                    index = index + 1
+                
+                    poly = np.array(poly)
+                    poly = poly.reshape((-1,1,2))
+                    cv2.polylines(img, [poly], True, (0,255,255))
+                    poly = []
 
     show("without blocks", img)
     return img
@@ -297,26 +296,29 @@ def idcard_check_nmbr(resp, resp_back):
             if re.match("^[LMNPRTVWXY][1234567890CFGHJKLMNPRTVWXYZ]{9}", block['Text']):
                 id_nmbr_back = block['Text']
                 print("length match back")
-    print("found the numbers : " + id_nmbr_front + " and " + id_nmbr_back)
+    if id_nmbr_back == "" or id_nmbr_front == "":
+        print("Found no Id Numbers")
+    else:
+        print("found the numbers : " + id_nmbr_front + " and " + id_nmbr_back)
 
-    weight = 7
-    nmbr_sum = 0
-    for c in id_nmbr_front:
-        if weight == 7:
-            nmbr_sum += get_alphab_nmbr(c)
-            weight = 3
+        weight = 7
+        nmbr_sum = 0
+        for c in id_nmbr_front:
+            if weight == 7:
+                nmbr_sum += get_alphab_nmbr(c)
+                weight = 3
 
-        if weight == 3:
-            weight = 1
-            nmbr_sum += get_alphab_nmbr(c)
-        if weight == 1:
-            weight = 7
-            nmbr_sum += get_alphab_nmbr(c)
+            if weight == 3:
+                weight = 1
+                nmbr_sum += get_alphab_nmbr(c)
+            if weight == 1:
+                weight = 7
+                nmbr_sum += get_alphab_nmbr(c)
 
-        if id_nmbr_back[len(id_nmbr_back) - 1] == int(str(nmbr_sum)[-1:]):
-            print('id is valid')
-        else:
-            print('id is false')
+            if id_nmbr_back[len(id_nmbr_back) - 1] == int(str(nmbr_sum)[-1:]):
+                print('id is valid')
+            else:
+                print('id is false')
 
 def get_alphab_nmbr(char):
     if str.isdigit(char):
