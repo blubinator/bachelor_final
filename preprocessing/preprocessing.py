@@ -11,11 +11,10 @@ import math
 import re
 import matplotlib.pyplot as plt
 import operator
+import re
 
 
 # resize
-
-
 def resize(img):
     dsize = (1920, 1080)
     resized_img = cv2.resize(img, dsize)
@@ -28,6 +27,8 @@ def show(name, img):
     cv2.imshow(name, img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+ger_id_dict = ["BUNDESREPUBLIK DEUTSCHLAND", "REPUBLIQUE FEDERAL", "PERSONALAUSWEIS", "IDENTITY CARD"]
 
 # It's quite difficult. There is so little contrast, even the JPEG compression artifacts have more contrast than the object on the background.
 
@@ -59,7 +60,7 @@ def detect_card(path):
     img_dilate = cv2.dilate(img_erode, (3, 3), iterations=1)
 
     _, img_thr = cv2.threshold(img_dilate,127,255,cv2.THRESH_BINARY_INV)
-    show("img_thr", img_thr)
+    #show("img_thr", img_thr)
 
 
     
@@ -77,14 +78,14 @@ def detect_card(path):
     blur = cv2.GaussianBlur(edged_gray, (9, 9), cv2.BORDER_DEFAULT)
     _, img_thr = cv2.threshold(blur,1,127,cv2.THRESH_BINARY)
     blur = cv2.GaussianBlur(img_thr, (5, 5), cv2.BORDER_DEFAULT)
-    show("img_thr", blur)
+    #show("img_thr", blur)
 
 
     # contours and rectangle detection
     (cnts, hier) = cv2.findContours(blur, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     cv2.drawContours(img, cnts, -1, (0, 255, 0), 9)
 
-    show("contours", img)
+    #show("contours", img)
     screenCnt = None
     area = 0
     area_index = 0
@@ -101,7 +102,7 @@ def detect_card(path):
 
     cv2.drawContours(img, screenCnt, -1, (0, 0, 255), 10)
 
-    show("rectangle", img)
+    #show("rectangle", img)
 
     # detect orientation of card
     screenCnt = np.sort(screenCnt, 1)
@@ -126,7 +127,7 @@ def detect_card(path):
 
     im_out = cv2.warpPerspective(img, h, (1680, 1050))
 
-    show("Warped Source Image", im_out)
+    #show("Warped Source Image", im_out)
 
     return im_out
 
@@ -231,18 +232,21 @@ def extract_variable_lines(img, resp):
             # draw polygon
             poly = []
             temp = []
-            for pt in block['Geometry']['Polygon']:
-                x = pt['X']*width
-                y = pt['Y']*height
-                temp = [int(x),int(y)]
-                poly.append(temp)
-            
-            poly = np.array(poly)
-            poly = poly.reshape((-1,1,2))
-            # cv2.polylines(img, [poly], True, (0,255,255))
-            cv2.fillPoly(img, [poly], (255, 255, 255))
+        
+            if block['Text'].isupper() or re.match(r"[\d]{2}.[\d]{2}.[\d]{4}", block['Text']) or re.match(r"[0-9]+", block['Text']):
+                if not any(block['Text'] in s for s in ger_id_dict):
+                    for pt in block['Geometry']['Polygon']:
+                        x = pt['X']*width
+                        y = pt['Y']*height
+                        temp = [int(x),int(y)]
+                        poly.append(temp)    
 
-    show("black bars", img)
+                    poly = np.array(poly)
+                    poly = poly.reshape((-1,1,2))
+                    # cv2.polylines(img, [poly], True, (0,255,255))
+                    cv2.fillPoly(img, [poly], (255, 255, 255))
+
+    show("white bars", img)
     cv2.imwrite("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\preprocessing\\without_var.png", img)
     return img
 
@@ -348,7 +352,7 @@ if __name__ == "__main__":
     ############################################
     
     # front
-    img = detect_card("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures_idcard\\ausweis18.png")
+    img = detect_card("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures_idcard\\ausweis17.png")
     resp = perform_ocr_aws(img)
     img = crop_blocks(img, resp)
     img = extract_variable_lines(img, resp)
