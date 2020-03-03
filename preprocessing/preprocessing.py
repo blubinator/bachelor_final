@@ -113,13 +113,14 @@ def detect_card(path):
     
 
     angle = math.degrees(math.atan2(temp_array[1][0][1]-temp_array[0][0][1], temp_array[1][0][0]-temp_array[0][0][0]))
-    
+    print("found angle of : " + str(angle))
+
     # homography
-    pts_src = np.array(screenCnt)
+    pts_src = np.array(temp_array)
     if angle > 90:
-        pts_dst = np.array([[1600, 0], [0, 0], [0, 1050], [1680, 1050]])
+        pts_dst = np.array([[1680, 0], [0, 0],  [1680, 1050], [0, 1050]])
     else:
-        pts_dst = np.array([[0, 1050], [1680, 1050], [1680, 0], [0, 0]])
+        pts_dst = np.array([[0, 0], [1680, 0], [0, 1050], [1680, 1050]])
 
     h, status = cv2.findHomography(pts_src, pts_dst)
 
@@ -277,6 +278,9 @@ def idcard_check_nmbr(resp, resp_back):
     blocks = resp['Blocks']
     blocks_back = resp_back['Blocks']
 
+    id_nmbr_front = ""
+    id_nmbr_back = ""
+
     for block in blocks:
         if block['BlockType'] == 'WORD':
             if re.match("^[LMNPRTVWXY][1234567890CFGHJKLMNPRTVWXYZ]{8}", block['Text']):
@@ -289,6 +293,7 @@ def idcard_check_nmbr(resp, resp_back):
             if re.match("^[LMNPRTVWXY][1234567890CFGHJKLMNPRTVWXYZ]{9}", block['Text']):
                 id_nmbr_back = block['Text']
                 print("length match back")
+    print("found the numbers : " + id_nmbr_front + " and " + id_nmbr_back)
 
     weight = 7
     nmbr_sum = 0
@@ -343,7 +348,7 @@ if __name__ == "__main__":
     ############################################
     
     # front
-    img = detect_card("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures_idcard\\ausweis19.png")
+    img = detect_card("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures_idcard\\ausweis18.png")
     resp = perform_ocr_aws(img)
     img = crop_blocks(img, resp)
     img = extract_variable_lines(img, resp)
