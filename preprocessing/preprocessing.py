@@ -107,20 +107,19 @@ def detect_card(path):
     screenCnt = np.sort(screenCnt, 1)
     ## get corners
     temp_array = screenCnt.copy()
-    upper_index = np.argmin(temp_array[:,:,1])
-    temp_array[upper_index] = 100000000000000
-    lower_index = np.argmin(temp_array[:,:,1])
+    temp_array = sorted(temp_array, key=lambda x:x[:,1])
+    upper_index = temp_array[0][0][1]
+    lower_index = temp_array[1][0][1]
     
 
-    angle = math.degrees(math.atan2(screenCnt[upper_index,:,1]-screenCnt[lower_index,:,1], screenCnt[upper_index,:,0]-screenCnt[lower_index,:,0]))
+    angle = math.degrees(math.atan2(temp_array[1][0][1]-temp_array[0][0][1], temp_array[1][0][0]-temp_array[0][0][0]))
     
     # homography
     pts_src = np.array(screenCnt)
-    if angle > 0:
-        pts_dst = np.array([[1680, 1050], [1680, 0], [0, 0], [0, 1050]])
- 
-    else:
+    if angle > 90:
         pts_dst = np.array([[1600, 0], [0, 0], [0, 1050], [1680, 1050]])
+    else:
+        pts_dst = np.array([[0, 1050], [1680, 1050], [1680, 0], [0, 0]])
 
     h, status = cv2.findHomography(pts_src, pts_dst)
 
@@ -344,7 +343,7 @@ if __name__ == "__main__":
     ############################################
     
     # front
-    img = detect_card("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures_idcard\\ausweis18.png")
+    img = detect_card("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures_idcard\\ausweis19.png")
     resp = perform_ocr_aws(img)
     img = crop_blocks(img, resp)
     img = extract_variable_lines(img, resp)
