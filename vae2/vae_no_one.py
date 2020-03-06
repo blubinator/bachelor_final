@@ -9,18 +9,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 from keras.callbacks import TensorBoard
 from keras.models import load_model
+import cv2
+
 
 def sample_z(args):
 	mu, sigma = args
-	batch     = K.shape(mu)[0]
-	dim       = K.int_shape(mu)[1]
-	eps       = K.random_normal(shape=(batch, dim))
+	batch = K.shape(mu)[0]
+	dim = K.int_shape(mu)[1]
+	eps = K.random_normal(shape=(batch, dim))
 	return mu + K.exp(sigma / 2) * eps
 
 # Define loss
+
+
 def kl_reconstruction_loss(true, pred):
 	# Reconstruction loss
-	reconstruction_loss = binary_crossentropy(K.flatten(true), K.flatten(pred)) * img_width * img_height
+	reconstruction_loss = binary_crossentropy(
+	    K.flatten(true), K.flatten(pred)) * img_width * img_height
 	# KL divergence loss
 	kl_loss = 1 + sigma - K.square(mu) - K.exp(sigma)
 	kl_loss = K.sum(kl_loss, axis=-1)
@@ -29,6 +34,8 @@ def kl_reconstruction_loss(true, pred):
 	return K.mean(reconstruction_loss + kl_loss)
 
 # visualize
+
+
 def viz_latent_space(encoder, data):
 	input_data, target_data = data
 	mu, _, _ = encoder.predict(input_data)
@@ -39,9 +46,11 @@ def viz_latent_space(encoder, data):
 	plt.colorbar()
 	plt.show()
 
+
 def viz_decoded(encoder, decoder, data):
 	num_samples = 15
-	figure = np.zeros((img_width * num_samples, img_height * num_samples, num_channels))
+	figure = np.zeros(
+	    (img_width * num_samples, img_height * num_samples, num_channels))
 	grid_x = np.linspace(-4, 4, num_samples)
 	grid_y = np.linspace(-4, 4, num_samples)[::-1]
 	for i, yi in enumerate(grid_y):
@@ -69,51 +78,23 @@ def viz_decoded(encoder, decoder, data):
 	# Show image
 	plt.imshow(figure)
 	plt.show()
+    
 
-def test_model():
-	#load model
-	vaetest = load_model('C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\vae2\\vae_model.h5', compile=False)
-	vaetest.compile(optimizer='adam', loss=kl_reconstruction_loss)
-	# define testimg
-	(x_train, y_train), (x_test, y_test) = mnist.load_data()
-	img_width, img_height = x_train.shape[1], x_train.shape[2]
-
-	# reshape
-	x_train = x_train.reshape(x_train.shape[0], img_height, img_width, 1)
-	x_test = x_test.reshape(x_test.shape[0], img_height, img_width, 1)
-	input_shape = (img_height, img_width, 1)
-
-	x_train = x_train.astype('float32')
-	x_test = x_test.astype('float32')
-
-	x_train = x_train / 255
-	x_test = x_test / 255
-
-	first_image = x_train[3]
-	first_image = np.array(first_image, dtype='float')
-	pixels = first_image.reshape((28, 28))
-	plt.imshow(pixels, cmap='gray')
-	plt.show()
-
-
-	pred = vaetest.predict(first_image.reshape(1, 28, 28, 1))
-
-	plt.figure(figsize=(8, 10))
-	plt.scatter(pred[:, 0], pred[:, 1])
-	plt.xlabel('z - dim 1')
-	plt.ylabel('z - dim 2')
-	plt.colorbar()
-	plt.show()
 
 # load data
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
+(x_train_original, y_train), (x_test_original, y_test) = mnist.load_data()
 
 # filter out images of '1'
 train_filter = np.where(y_train != 1)
 test_filter = np.where(y_test != 1)
 
-x_train = x_train[train_filter]
-x_test = x_test[test_filter]
+anomaly_train_filter = np.where(y_train == 1)
+anomaly_test_filter = np.where(y_test == 1)
+
+x_train = x_train_original[train_filter]
+x_test = x_test_original[test_filter]
+anomaly_x_train = x_train_original[anomaly_train_filter]
+anomaly_x_test = x_test_original[anomaly_test_filter]
 
 
 # config
@@ -171,30 +152,63 @@ de = BatchNormalization()(de)
 de = Conv2DTranspose(filters=num_channels, kernel_size=3, activation='sigmoid', padding='same', name='decoder_output')(de)
 
 # Instantiate decoder
-decoder = Model(de_i, de, name='decoder')
-decoder.summary()
+# decoder = Model(de_i, de, name='decoder')
+# decoder.summary()
 
 # VAE
-vae_outputs = decoder(encoder(i)[2])
-vae = Model(i, vae_outputs, name='vae')
-vae.summary()
+# vae_outputs = decoder(encoder(i)[2])
+# vae = Model(i, vae_outputs, name='vae')
+# vae.summary()
 
 # Compile VAE
-vae.compile(optimizer='adam', loss=kl_reconstruction_loss)
+# vae.compile(optimizer='adam', loss=kl_reconstruction_loss)
 
-# Train autoencoder
-vae.fit(x_train, x_train, 
-		epochs = epochs, 
-		batch_size = batch_size, 
-		validation_split = validation_split,
-		callbacks=[TensorBoard(log_dir='.\\tmp\\autoencoder_without_1', histogram_freq=1)])
+# # Train autoencoder
+# vae.fit(x_train, x_train, 
+# 		epochs = epochs, 
+# 		batch_size = batch_size, 
+# 		validation_split = validation_split,
+# 		callbacks=[TensorBoard(log_dir='.\\tmp\\autoencoder_without_1', histogram_freq=1)])
 
-vae.save('vae_model_without_1.h5')
+# vae.save('vae_model_without_1.h5')
 
-# Plot results
-data = (x_test, y_test)
-viz_latent_space(encoder, data)
-viz_decoded(encoder, decoder, data)
+# # Plot results
+# data = (x_test, y_test)
+# viz_latent_space(encoder, data)
+# viz_decoded(encoder, decoder, data)
 
-# call test with 1
-test_model()
+##################### call test with 1 #########################
+# load model
+vaetest = load_model(
+    'C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\vae2\\vae_model_without_1.h5', compile=False)
+vaetest.compile(optimizer='adam', loss=kl_reconstruction_loss)
+
+# define testimg
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+img_width, img_height = x_train.shape[1], x_train.shape[2]
+
+
+# reshape
+x_train = x_train.reshape(x_train.shape[0], img_height, img_width, 1)
+x_test = x_test.reshape(x_test.shape[0], img_height, img_width, 1)
+input_shape = (img_height, img_width, 1)
+
+x_train = x_train.astype('float32')
+x_test = x_test.astype('float32')
+
+x_train = x_train / 255
+x_test = x_test / 255
+
+first_image = x_train[2]
+first_image = np.array(first_image, dtype='float')
+pixels = first_image.reshape((28, 28))
+plt.imshow(pixels, cmap='gray')
+plt.show()
+
+
+pred = vaetest.predict(first_image.reshape(1, 28, 28, 1))
+temp_img = pred.reshape(28, 28)
+plt.imshow(temp_img, cmap='gray')
+plt.show()
+
+
