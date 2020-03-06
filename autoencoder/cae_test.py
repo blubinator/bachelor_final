@@ -42,7 +42,7 @@ autoencoder.fit(x_train, x_train,
                 batch_size=128,
                 shuffle=True,
                 validation_data=(x_test, x_test),
-                callbacks=[TensorBoard(log_dir='.\\tmp\\autoencoder')])
+                callbacks=[TensorBoard(log_dir='.\\tmp\\autoencoder', histogram_freq=1)])
 
 decoded_imgs = autoencoder.predict(x_test)
 

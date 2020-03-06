@@ -12,6 +12,7 @@ import re
 import matplotlib.pyplot as plt
 import operator
 import re
+from passporteye import read_mrz
 
 
 # resize
@@ -344,13 +345,24 @@ def check_lines():
     for i in range(len(huMoments)):
         huMoments[i] = -1 * math.copysign(1.0, huMoments[i]) * math.log10(abs(huMoments[i]))  
         print(huMoments[i])
+
+# def check_mrz():
+#     # Process image
+#     mrz = read_mrz("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures_idcard\\ausweis_rueckseite3.png", save_roi=True)
+#     # Obtain image
+#     mrz_data = mrz.to_dict()
+
+#     print(mrz_data['country'])
+#     print(mrz_data['names'])
+#     print(mrz_data['surname'])
+#     print(mrz_data['type'])
     
 
 
 
 if __name__ == "__main__":
     ####### set tesseract path manually ########
-    pytesseract.pytesseract.tesseract_cmd="C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+    pytesseract.pytesseract.tesseract_cmd="C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe"
     ############################################
     
     # front
@@ -367,3 +379,4 @@ if __name__ == "__main__":
 
     idcard_check_nmbr(resp, resp_back)
     check_lines()
+    #check_mrz()
