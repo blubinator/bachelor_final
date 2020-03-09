@@ -10,6 +10,10 @@ import matplotlib.pyplot as plt
 from keras.callbacks import TensorBoard
 from keras.models import load_model
 import cv2
+from keras.utils import plot_model
+import pandas as pd
+from scipy.stats import norm
+from sklearn.neighbors import KernelDensity
 
 
 def sample_z(args):
@@ -78,7 +82,14 @@ def viz_decoded(encoder, decoder, data):
 	# Show image
 	plt.imshow(figure)
 	plt.show()
-    
+
+def model_mse(x):
+    pred = vaetest.predict(x, batch_size = batch_size)
+    sq = np.square(pred)
+    mean = np.mean(sq, (1,2,3))
+    return mean
+
+
 
 
 # load data
@@ -95,12 +106,13 @@ x_train = x_train_original[train_filter]
 x_test = x_test_original[test_filter]
 anomaly_x_train = x_train_original[anomaly_train_filter]
 anomaly_x_test = x_test_original[anomaly_test_filter]
+print('Training Images', x_train.shape, 'Testing Images', x_test.shape, 'Anomaly Images', anomaly_x_test.shape)
 
 
-# config
+# config // hyperparameter
 img_width, img_height = x_train.shape[1], x_train.shape[2]
-batch_size = 128
-epochs = 100
+batch_size = 256
+epochs = 50
 validation_split = 0.2
 verbosity = 1
 latent_dim = 2
@@ -109,13 +121,19 @@ num_channels = 1
 # reshape
 x_train = x_train.reshape(x_train.shape[0], img_height, img_width, num_channels)
 x_test = x_test.reshape(x_test.shape[0], img_height, img_width, num_channels)
+anomaly_x_train = anomaly_x_train.reshape(anomaly_x_train.shape[0], img_height, img_width, num_channels)
+anomaly_x_test = anomaly_x_test.reshape(anomaly_x_test.shape[0], img_height, img_width, num_channels)
 input_shape = (img_height, img_width, num_channels)
 
 x_train = x_train.astype('float32')
 x_test = x_test.astype('float32')
+anomaly_x_train = anomaly_x_train.astype('float32')
+anomaly_x_test = anomaly_x_test.astype('float32')
 
 x_train = x_train / 255
 x_test = x_test / 255
+anomaly_x_train = anomaly_x_train / 255
+anomaly_x_test = anomaly_x_test / 255
 
 # encoder
 i = Input(shape=input_shape, name='encoder_input')
@@ -152,13 +170,13 @@ de = BatchNormalization()(de)
 de = Conv2DTranspose(filters=num_channels, kernel_size=3, activation='sigmoid', padding='same', name='decoder_output')(de)
 
 # Instantiate decoder
-# decoder = Model(de_i, de, name='decoder')
-# decoder.summary()
+decoder = Model(de_i, de, name='decoder')
+decoder.summary()
 
 # VAE
-# vae_outputs = decoder(encoder(i)[2])
-# vae = Model(i, vae_outputs, name='vae')
-# vae.summary()
+vae_outputs = decoder(encoder(i)[2])
+vae = Model(i, vae_outputs, name='vae')
+vae.summary()
 
 # Compile VAE
 # vae.compile(optimizer='adam', loss=kl_reconstruction_loss)
@@ -172,10 +190,7 @@ de = Conv2DTranspose(filters=num_channels, kernel_size=3, activation='sigmoid', 
 
 # vae.save('vae_model_without_1.h5')
 
-# # Plot results
-# data = (x_test, y_test)
-# viz_latent_space(encoder, data)
-# viz_decoded(encoder, decoder, data)
+
 
 ##################### call test with 1 #########################
 # load model
@@ -183,32 +198,31 @@ vaetest = load_model(
     'C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\vae2\\vae_model_without_1.h5', compile=False)
 vaetest.compile(optimizer='adam', loss=kl_reconstruction_loss)
 
-# define testimg
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
-img_width, img_height = x_train.shape[1], x_train.shape[2]
+# calc error
+fig, ax1 = plt.subplots(1,1, figsize = (8,8))
+#ax1.hist(model_mse(x_train), bins = np.linspace(0, .1, 50), label = 'Training Digits', normed = True, alpha = 1.0)
+#ax1.hist(model_mse(x_test), bins = np.linspace(0, .1, 50), label = 'Testing Digits', normed = True, alpha = 0.5)
+#ax1.hist(model_mse(anomaly_x_test), bins = np.linspace(0, .1, 50), label = 'Anomaly Digits', normed = True, alpha = 0.5)
+ax1.hist(model_mse(x_train), alpha = 1.0, label = 'Training data', normed = True)
+ax1.hist(model_mse(x_test), alpha = 0.5, label = 'Testing data', normed = True)
+ax1.hist(model_mse(anomaly_x_test), alpha = 0.5, label = 'Anomaly data', normed = True)
+ax1.legend()
+ax1.set_xlabel('Reconstruction Error')
 
+# reconstruction
+fig, m_axs = plt.subplots(5,4, figsize=(20, 10))
+[c_ax.axis('off') for c_ax in m_axs.ravel()]
+for i, (axa_in, axa_vae, axt_in, axt_vae) in enumerate(m_axs):
+    axa_in.imshow(np.squeeze(anomaly_x_test[i]))
+    axa_in.set_title('Anomaly In')
+    axa_vae.imshow(vaetest.predict(anomaly_x_test[i:i+1])[0,:,:,0])
+    axa_vae.set_title('Anomaly/Reconstructed')
+    axt_in.imshow(np.squeeze(x_test[i]))
+    axt_in.set_title('Test In')
+    axt_vae.imshow(vaetest.predict(x_test[i:i+1])[0,:,:,0])
+    axt_vae.set_title('Test Reconstructed')
 
-# reshape
-x_train = x_train.reshape(x_train.shape[0], img_height, img_width, 1)
-x_test = x_test.reshape(x_test.shape[0], img_height, img_width, 1)
-input_shape = (img_height, img_width, 1)
-
-x_train = x_train.astype('float32')
-x_test = x_test.astype('float32')
-
-x_train = x_train / 255
-x_test = x_test / 255
-
-first_image = x_train[2]
-first_image = np.array(first_image, dtype='float')
-pixels = first_image.reshape((28, 28))
-plt.imshow(pixels, cmap='gray')
 plt.show()
 
-
-pred = vaetest.predict(first_image.reshape(1, 28, 28, 1))
-temp_img = pred.reshape(28, 28)
-plt.imshow(temp_img, cmap='gray')
-plt.show()
 
 
