@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import operator
 import re
 from passporteye import read_mrz
+import os
 
 
 # resize
@@ -100,7 +101,7 @@ def detect_card(path):
 
     cv2.drawContours(img, screenCnt, -1, (0, 0, 255), 10)
 
-    show("rectangle", img)
+    #show("rectangle", img)
 
     # detect orientation of card
     screenCnt = np.sort(screenCnt, 1)
@@ -207,7 +208,7 @@ def crop_blocks(img, resp):
                     cv2.bitwise_not(bg,bg, mask=mask)
                     dst2 = bg + dst
 
-                    cv2.imwrite("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\preprocessing\\line" + str(index) + ".png", dst2)
+                    cv2.imwrite("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\lines\\" + str(index) + ".png", dst2)
                     index = index + 1
                 
                     poly = np.array(poly)
@@ -215,13 +216,13 @@ def crop_blocks(img, resp):
                     cv2.polylines(img, [poly], True, (0,255,255))
                     poly = []
 
-    show("without blocks", img)
+    #show("without blocks", img)
     return img
 
 
 
 
-def extract_variable_lines(img, resp):
+def extract_variable_lines(img, resp, name):
     # Get the text blocks
     blocks = resp['Blocks']
     height, width, _ = img.shape
@@ -246,11 +247,11 @@ def extract_variable_lines(img, resp):
                     # cv2.polylines(img, [poly], True, (0,255,255))
                     cv2.fillPoly(img, [poly], (255, 255, 255))
 
-    show("white bars", img)
-    cv2.imwrite("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\preprocessing\\without_var.png", img)
+    #show("white bars", img)
+    #cv2.imwrite("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\preprocessing\\" +  name + "without_var.png", img)
     return img
 
-def crop_face(img, cascPath):
+def crop_face(img, cascPath, name):
     faceCascade = cv2.CascadeClassifier(cascPath)
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -272,8 +273,8 @@ def crop_face(img, cascPath):
         cv2.rectangle(img, (x-50, y-100), (x+w+50, y+h+80), (255, 255, 255), cv2.FILLED)
         
 
-    show("Faces found", img)
-    cv2.imwrite("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\preprocessing\\no_face_square.png", img)
+    #show("Faces found", img)
+    cv2.imwrite("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\preprocessed\\" + name + "_no_face_square.png", img)
 
     # maybe use edge detection inside the rectangle
 
@@ -337,7 +338,7 @@ def check_lines():
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     _, th = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
-    show("thresh line", th)
+    #show("thresh line", th)
 
     moments = cv2.moments(th)
     huMoments = cv2.HuMoments(moments)
@@ -365,18 +366,25 @@ if __name__ == "__main__":
     pytesseract.pytesseract.tesseract_cmd="C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe"
     ############################################
     
-    # front
-    img = detect_card("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures_idcard\\ausweis17.png")
-    resp = perform_ocr_aws(img)
-    img = crop_blocks(img, resp)
-    img = extract_variable_lines(img, resp)
-    img = crop_face(img, "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\haarcascade_frontalface_default.xml")
-
-    # back
-    img_back = detect_card("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures_idcard\\ausweis_rueckseite3.png")
-    resp_back = perform_ocr_aws(img_back)
+    for filename in os.listdir("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\front"):
+        src = "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\front\\" + filename  
 
 
-    idcard_check_nmbr(resp, resp_back)
-    check_lines()
-    #check_mrz()
+        # front
+        img = detect_card("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures_idcard\\front\\" + filename)
+        resp = perform_ocr_aws(img)
+        img = crop_blocks(img, resp)
+        img = extract_variable_lines(img, resp, filename)
+        img = crop_face(img, "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\haarcascade_frontalface_default.xml", filename)
+
+    for filename in os.listdir("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\back"):
+        src = "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\back\\" + filename  
+
+        # back
+        img_back = detect_card("C:\\Users\\tim.reicheneder\\Desktop\Bachelorthesis\\impl_final\\pictures_idcard\\back\\ausweis1.png")
+        resp_back = perform_ocr_aws(img_back)
+
+
+        idcard_check_nmbr(resp, resp_back)
+        check_lines()
+        #check_mrz()

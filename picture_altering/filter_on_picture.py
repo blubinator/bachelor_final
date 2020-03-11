@@ -1,20 +1,8 @@
-# Parameters
-# ----------
-# image : ndarray
-#    Input image data. Will be converted to float.
-# mode : str
-#    One of the following strings, selecting the type of noise to add:
-#
-#    'gauss'     Gaussian-distributed additive noise.
-#    'poisson'   Poisson-distributed noise generated from the data.
-#    's&p'       Replaces random pixels with 0 or 1.
-#    'speckle'   Multiplicative noise using out = image + n*image,where
-#                n is uniform noise with specified mean & variance.
-
-
 import numpy as np
 import os
 import cv2
+from PIL import Image, ImageEnhance
+
 
 
 def noisy(noise_typ, image):
@@ -28,22 +16,18 @@ def noisy(noise_typ, image):
         noisy = image + gauss
         return noisy
     elif noise_typ == "s&p":
-        row, col, ch = image.shape
-        s_vs_p = 0.5
-        amount = 0.004
-        out = np.copy(image)
-        # Salt mode
-        num_salt = np.ceil(amount * image.size * s_vs_p)
-        coords = [np.random.randint(0, i - 1, int(num_salt))
-                for i in image.shape]
-        out[coords] = 1
-
-        # Pepper mode
-        num_pepper = np.ceil(amount * image.size * (1. - s_vs_p))
-        coords = [np.random.randint(0, i - 1, int(num_pepper))
-                for i in image.shape]
-        out[coords] = 0
-        return out
+        noisy = np.zeros(image.shape,np.uint8)
+        thres = 1 - 0.05 
+        for i in range(image.shape[0]):
+            for j in range(image.shape[1]):
+                rdn = np.random.rand()
+                if rdn < 0.05:
+                    noisy[i][j] = 0
+                elif rdn > thres:
+                    noisy[i][j] = 255
+                else:
+                    noisy[i][j] = image[i][j]
+        return noisy
     elif noise_typ == "poisson":
         vals = len(np.unique(image))
         vals = 2 ** np.ceil(np.log2(vals))
@@ -55,24 +39,36 @@ def noisy(noise_typ, image):
         gauss = gauss.reshape(row,col,ch)        
         noisy = image + image * gauss
         return noisy
-  
-    
-for filename in os.listdir("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures"):
 
-    src = "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures\\" + filename  
+def change_contrast(src, filename):
+    img = Image.open(src)
+    enhancer = ImageEnhance.Brightness(img)
+
+    img_dark = enhancer.enhance(0.5)
+    img_dark.save("dark_" + filename)
+
+    img_light = enhancer.enhance(1.5)
+    img_light.save("light_" + filename)
+
+
+for filename in os.listdir("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\preprocessed"):
+
+    src = "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\preprocessed\\" + filename  
 
     img = cv2.imread(src)
 
     altered_img = noisy("gauss", img)
-    cv2.imwrite(src + "_gauss.jpg", altered_img)
+    cv2.imwrite(src + "_gauss.png", altered_img)
 
     altered_img = noisy("s&p", img)
-    cv2.imwrite(src + "_s&p.jpg", altered_img)
+    cv2.imwrite(src + "_s&p.png", altered_img)
 
     altered_img = noisy("poisson", img)
-    cv2.imwrite(src + "_poisson.jpg", altered_img)
+    cv2.imwrite(src + "_poisson.png", altered_img)
 
-    altered_img = noisy("speckle", img)
-    cv2.imwrite(src + "_speckle.jpg", altered_img)
+    change_contrast(src, filename)
+
+#     altered_img = noisy("speckle", img)
+#     cv2.imwrite(src + "_speckle.png", altered_img)
 
 
