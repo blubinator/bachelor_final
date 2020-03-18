@@ -51,20 +51,47 @@ def change_contrast(src, filename):
     img_light.save("light_" + filename)
 
 
-for filename in os.listdir("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\preprocessed"):
+# for filename in os.listdir("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\classification\\pictures\\Train\\id"):
 
-    src = "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\preprocessed\\" + filename  
+#     src = "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\classification\\pictures\\Train\\id\\" + filename  
 
-    img = cv2.imread(src)
+#     img = cv2.imread(src)
 
-    altered_img = noisy("gauss", img)
-    cv2.imwrite(src + "_gauss.png", altered_img)
+#     altered_img = noisy("gauss", img)
+#     cv2.imwrite(src + "_gauss.jpg", altered_img)
 
-    altered_img = noisy("s&p", img)
-    cv2.imwrite(src + "_s&p.png", altered_img)
+#     altered_img = noisy("s&p", img)
+#     cv2.imwrite(src + "_s&p.jpg", altered_img)
 
-    altered_img = noisy("poisson", img)
-    cv2.imwrite(src + "_poisson.png", altered_img)
+#     altered_img = noisy("poisson", img)
+#     cv2.imwrite(src + "_poisson.jpg", altered_img)
+
+
+for filename in os.listdir("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\classification\\pictures\\Train\\id"):
+
+    src = "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\classification\\pictures\\Train\\id\\" + filename  
+
+    change_contrast(src, filename)
+
+# for filename in os.listdir("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\classification\\pictures\\Train\\licence"):
+
+#     src = "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\classification\\pictures\\Train\\licence\\" + filename  
+
+#     img = cv2.imread(src)
+
+#     altered_img = noisy("gauss", img)
+#     cv2.imwrite(src + "_gauss.jpg", altered_img)
+
+#     altered_img = noisy("s&p", img)
+#     cv2.imwrite(src + "_s&p.jpg", altered_img)
+
+#     altered_img = noisy("poisson", img)
+#     cv2.imwrite(src + "_poisson.jpg", altered_img)
+
+
+for filename in os.listdir("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\classification\\pictures\\Train\\licence"):
+
+    src = "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\classification\\pictures\\Train\\licence\\" + filename    
 
     change_contrast(src, filename)
 

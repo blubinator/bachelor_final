@@ -61,9 +61,9 @@ def histrogram(x_train, x_test, anomaly_x_test):
 
 def reconstruction_comparison(x_test, anomaly_x_test):
     # load model
-    # vae = load_model(
-    #     'C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\vae_with_idcard\\vae.h5', compile = False)
-    # vae.compile(optimizer = 'adam', loss = kl_reconstruction_loss)
+    vae = load_model(
+        'C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\vae_with_idcard\\vae.h5', compile = False)
+    vae.compile(optimizer = 'adam', loss = kl_reconstruction_loss)
 
     # reconstruction
     fig, m_axs = plt.subplots(5,4, figsize=(20, 10))
@@ -156,13 +156,6 @@ def getSingleImg(path):
         temp = cv2.cvtColor(temp, cv2.COLOR_BGR2GRAY)
         temp = cv2.resize(temp, (128, 128))
         return temp
-
-def MSE(img1, img2):
-    squared_diff = (img1 -img2) ** 2
-    summed = np.sum(squared_diff)
-    num_pix = img1.shape[0] * img1.shape[1] #img1 and 2 should have same shape
-    err = summed / num_pix
-    return err
 ##################### TEST #########################################################################################
 
 
@@ -257,9 +250,7 @@ vae.compile(optimizer='adam', loss=kl_reconstruction_loss)
 
 
 #data = (input_test, target_test)
-vae = load_model(
-    'C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\vae_with_idcard\\vae.h5', compile = False)
-vae.compile(optimizer = 'adam', loss = kl_reconstruction_loss)
+vae = load_model('C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\vae_with_idcard\\encoder.h5')
 encoder = load_model('C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\vae_with_idcard\\encoder.h5')
 decoder = load_model('C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\vae_with_idcard\\decoder.h5')
 
@@ -267,10 +258,4 @@ decoder = load_model('C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_
 data = (x_test, x_train)
 
 reconstruction_comparison(x_test, x_anomaly)
-
-pred_norm = vae.predict(x_test[1:2])
-
-mse = MSE(x_test[1], pred_norm)
-
-mse = 1
 
