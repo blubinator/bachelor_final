@@ -266,11 +266,17 @@ decoder = load_model('C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_
 
 data = (x_test, x_train)
 
-reconstruction_comparison(x_test, x_anomaly)
+# reconstruction_comparison(x_test, x_anomaly)
 
-pred_norm = vae.predict(x_test[1:2])
+pred_norm = vae.predict(x_test[3:4])
+plt.imshow(pred_norm[0,:,:,0])
+plt.show()
+mse = MSE(x_test[3], pred_norm)
 
-mse = MSE(x_test[1], pred_norm)
+pred_ano = vae.predict(x_anomaly[3:4])
+plt.imshow(pred_ano[0,:,:,0])
+plt.show()
+mse_ano = MSE(x_test[3], pred_ano)
 
 mse = 1
 

@@ -44,58 +44,34 @@ def change_contrast(src, filename):
     img = Image.open(src)
     enhancer = ImageEnhance.Brightness(img)
 
-    img_dark = enhancer.enhance(0.5)
-    img_dark.save("dark_" + filename)
+    img_dark = enhancer.enhance(0.85)
+    img_dark.save("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\preprocessed\\dark_" + filename)
 
-    img_light = enhancer.enhance(1.5)
-    img_light.save("light_" + filename)
+    img_light = enhancer.enhance(1.15)
+    img_light.save("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\preprocessed\\light_" + filename)
 
 
-# for filename in os.listdir("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\classification\\pictures\\Train\\id"):
 
-#     src = "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\classification\\pictures\\Train\\id\\" + filename  
+for filename in os.listdir("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\preprocessed"):
+
+    src = "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\preprocessed\\" + filename  
+
+    change_contrast(src, filename)
+
+# for filename in os.listdir("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\preprocessed"):
+
+#     src = "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\preprocessed\\" + filename  
 
 #     img = cv2.imread(src)
 
 #     altered_img = noisy("gauss", img)
-#     cv2.imwrite(src + "_gauss.jpg", altered_img)
+#     cv2.imwrite(src + "_g.jpg", altered_img)
 
 #     altered_img = noisy("s&p", img)
-#     cv2.imwrite(src + "_s&p.jpg", altered_img)
+#     cv2.imwrite(src + "_snp.jpg", altered_img)
 
 #     altered_img = noisy("poisson", img)
-#     cv2.imwrite(src + "_poisson.jpg", altered_img)
+#     cv2.imwrite(src + "_poi.jpg", altered_img)
 
-
-for filename in os.listdir("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\classification\\pictures\\Train\\id"):
-
-    src = "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\classification\\pictures\\Train\\id\\" + filename  
-
-    change_contrast(src, filename)
-
-# for filename in os.listdir("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\classification\\pictures\\Train\\licence"):
-
-#     src = "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\classification\\pictures\\Train\\licence\\" + filename  
-
-#     img = cv2.imread(src)
-
-#     altered_img = noisy("gauss", img)
-#     cv2.imwrite(src + "_gauss.jpg", altered_img)
-
-#     altered_img = noisy("s&p", img)
-#     cv2.imwrite(src + "_s&p.jpg", altered_img)
-
-#     altered_img = noisy("poisson", img)
-#     cv2.imwrite(src + "_poisson.jpg", altered_img)
-
-
-for filename in os.listdir("C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\classification\\pictures\\Train\\licence"):
-
-    src = "C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\classification\\pictures\\Train\\licence\\" + filename    
-
-    change_contrast(src, filename)
-
-#     altered_img = noisy("speckle", img)
-#     cv2.imwrite(src + "_speckle.png", altered_img)
 
 

@@ -170,25 +170,25 @@ num_channels = 1
 
 
 
-x_train = getAndPrepareImages('C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\preprocessed\\')
-x_test = getAndPrepareImages('C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\preprocessed\\')
+#x_train = getAndPrepareImages('C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\preprocessed\\id\\')
+x_test = getAndPrepareImages('C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\normal\\')
 x_anomaly = getAndPrepareImages('C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\pictures_idcard\\anomal_pictures\\')
 # plt.imshow(x_train[1])
 # plt.show()
 
 # reshape
-x_train = x_train.reshape(x_train.shape[0], img_height, img_width, num_channels)
+#x_train = x_train.reshape(x_train.shape[0], img_height, img_width, num_channels)
 x_test = x_test.reshape(x_test.shape[0], img_height, img_width, num_channels)
 x_anomaly = x_anomaly.reshape(x_anomaly.shape[0], img_height, img_width, num_channels)
 input_shape = (img_height, img_width, num_channels)
 
-x_train = x_train.astype('float32')
+#x_train = x_train.astype('float32')
 x_test = x_test.astype('float32')
 x_anomaly = x_anomaly.astype('float32')
 
 
 
-x_train = x_train / 255
+#x_train = x_train / 255
 x_test = x_test / 255
 x_anomaly = x_anomaly / 255
 
@@ -250,12 +250,13 @@ vae.compile(optimizer='adam', loss=kl_reconstruction_loss)
 
 
 #data = (input_test, target_test)
-vae = load_model('C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\vae_with_idcard\\encoder.h5')
+vae = load_model('C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\colab_downloads\\vae.h5', compile=False)
+vae.compile(optimizer='adam', loss=kl_reconstruction_loss)
+
 encoder = load_model('C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\vae_with_idcard\\encoder.h5')
 decoder = load_model('C:\\Users\\tim.reicheneder\\Desktop\\Bachelorthesis\\impl_final\\vae_with_idcard\\decoder.h5')
 
-
-data = (x_test, x_train)
+recon_loss = kl_reconstruction_loss(x_test[1], x_anomaly[1])
 
 reconstruction_comparison(x_test, x_anomaly)
 
